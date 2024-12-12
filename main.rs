@@ -16,10 +16,15 @@ enum Token {
 fn lexing(expression: &str) -> Result<Vec<Token>, String /*pt erori */> {
     let mut tokens = Vec::new();
     let mut chars = expression.chars().peekable();
+    let mut last_token_is_number = false;
+    let mut last_token_is_operator = false;
 
     while let Some(&ch) = chars.peek() {
         match ch {
             '0'..='9' => {
+                if last_token_is_number {
+                    return Err("Numerele trebuie sa fie separate de operatori.".to_string());
+                }
                 let mut number_string = String::new();
                 while let Some(&c) = chars.peek() {
                     if c.is_ascii_digit() || c == '.' {
@@ -29,17 +34,40 @@ fn lexing(expression: &str) -> Result<Vec<Token>, String /*pt erori */> {
                         break;
                     }
                 }
+                last_token_is_number = true;
+                last_token_is_operator = false;
                 tokens.push(Token::Number(number_string.parse::<f64>().unwrap()));
             }
             '+' | '-' | '*' | '/' => {
+                if last_token_is_operator {
+                    return Err("Operatorii trebuie sa fie separati de numere.".to_string());
+                }
+                last_token_is_number = false;
+                last_token_is_operator = true;
                 tokens.push(Token::Operator(ch));
                 chars.next();
             }
             '(' => {
+                if last_token_is_number {
+                    return Err(
+                        "Parantezele deschise trebuie sa fie separate de numere.".to_string()
+                    );
+                }
+                last_token_is_number = false;
+                last_token_is_operator = false;
+
                 tokens.push(Token::LeftPar);
                 chars.next();
             }
             ')' => {
+                if last_token_is_operator {
+                    return Err(
+                        "Parantezele inchise trebuie sa fie separate de operatori.".to_string()
+                    );
+                }
+                last_token_is_number = false;
+                last_token_is_operator = false;
+
                 tokens.push(Token::RightPar);
                 chars.next();
             }
@@ -47,11 +75,23 @@ fn lexing(expression: &str) -> Result<Vec<Token>, String /*pt erori */> {
                 chars.next();
             }
             '^' => {
+                if last_token_is_number {
+                    return Err("Operatorii trebuie sa fie separati de numere.".to_string());
+                }
+                last_token_is_number = false;
+                last_token_is_operator = true;
+
                 chars.next();
                 chars.next();
                 tokens.push(Token::Operator('^'));
             }
             '√' | 'r' => {
+                if last_token_is_number {
+                    return Err("Operatorii trebuie sa fie separati de numere.".to_string());
+                }
+                last_token_is_number = false;
+                last_token_is_operator = true;
+
                 chars.next();
                 tokens.push(Token::Operator('√'));
             }
@@ -72,6 +112,15 @@ fn lexing(expression: &str) -> Result<Vec<Token>, String /*pt erori */> {
                         break;
                     }
                 }
+                if last_token_is_operator {
+                    return Err(
+                        "Functiile trigonometrice trebuie sa fie separate de operatori."
+                            .to_string(),
+                    );
+                }
+                last_token_is_number = false;
+                last_token_is_operator = true;
+
                 if base_string.is_empty() {
                     tokens.push(Token::LogBase(std::f64::consts::E)); // logaritm natural
                 } else {
@@ -91,11 +140,28 @@ fn lexing(expression: &str) -> Result<Vec<Token>, String /*pt erori */> {
                         "Sintaxa incorecta pentru functia sin. Asteptam sin(x).".to_string()
                     );
                 }
+
+                while let Some(&next_char) = chars.peek() {
+                    if next_char == ' ' {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+
                 if chars.peek() != Some(&'(') {
                     return Err(
                         "Sintaxa incorecta pentru functia sin. Asteptam sin(x).".to_string()
                     );
                 }
+                if last_token_is_number {
+                    return Err(
+                        "Functiile trigonometrice trebuie sa fie separate de operatori."
+                            .to_string(),
+                    );
+                }
+                last_token_is_number = false;
+                last_token_is_operator = true;
                 tokens.push(Token::TrigFunc("sin".to_string()));
             }
             'c' => {
@@ -110,11 +176,30 @@ fn lexing(expression: &str) -> Result<Vec<Token>, String /*pt erori */> {
                         "Sintaxa incorecta pentru functia cos. Asteptam cos(x).".to_string()
                     );
                 }
+
+                while let Some(&next_char) = chars.peek() {
+                    if next_char == ' ' {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+
                 if chars.peek() != Some(&'(') {
                     return Err(
                         "Sintaxa incorecta pentru functia cos. Asteptam cos(x).".to_string()
                     );
                 }
+
+                if last_token_is_number {
+                    return Err(
+                        "Functiile trigonometrice trebuie sa fie separate de operatori."
+                            .to_string(),
+                    );
+                }
+                last_token_is_number = false;
+                last_token_is_operator = true;
+
                 tokens.push(Token::TrigFunc("cos".to_string()));
             }
             't' => {
@@ -129,11 +214,30 @@ fn lexing(expression: &str) -> Result<Vec<Token>, String /*pt erori */> {
                         "Sintaxa incorecta pentru functia tan. Asteptam tan(x).".to_string()
                     );
                 }
+
+                while let Some(&next_char) = chars.peek() {
+                    if next_char == ' ' {
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+
                 if chars.peek() != Some(&'(') {
                     return Err(
                         "Sintaxa incorecta pentru functia tan. Asteptam tan(x).".to_string()
                     );
                 }
+
+                if last_token_is_number {
+                    return Err(
+                        "Functiile trigonometrice trebuie sa fie separate de operatori."
+                            .to_string(),
+                    );
+                }
+                last_token_is_number = false;
+                last_token_is_operator = true;
+
                 tokens.push(Token::TrigFunc("tan".to_string()));
             }
             _ => {
@@ -248,6 +352,11 @@ fn evaluate(tokens: &mut Vec<Token>) -> Result<f64, String> {
         if let Token::Operator(op) = tokens[i] {
             if op == '√' {
                 if let Token::Number(numar) = tokens[i + 1] {
+                    if numar < 0.0 {
+                        return Err(
+                            "Radicalul nu poate fi calculat pentru numere negative.".to_string()
+                        );
+                    }
                     let result = numar.sqrt();
                     tokens.splice(i..=i + 1, vec![Token::Number(result)]);
                     println!("= {}", tokens_to_string(tokens));
@@ -368,38 +477,44 @@ fn print_tutorial() {
 }
 
 fn main() {
-    println!("Introdu o expresie matematica sau tastati 'help' pentru un ghid:");
+    loop {
+        println!("Introdu o expresie matematica,tastati 'help' pentru un ghid sau 'quit'/'exit' pentru a iesi:");
 
-    let mut expression = String::new();
-    io::stdout().flush().unwrap();
-    io::stdin()
-        .read_line(&mut expression)
-        .expect("Nu am putut citi expresia.");
+        let mut expression = String::new();
+        io::stdout().flush().unwrap();
+        io::stdin()
+            .read_line(&mut expression)
+            .expect("Nu am putut citi expresia.");
 
-    let expression = expression.trim();
+        let expression = expression.trim();
 
-    if expression == "help" {
-        print_tutorial();
-        return;
-    }
-
-    println!("Expression: {}", expression);
-
-    // 1. Lexing & Parsing
-    let mut tokens = match lexing(expression) {
-        Ok(t) => t,
-        Err(err) => {
-            println!("Lexing error: {}", err);
-            return;
+        if expression == "help" {
+            print_tutorial();
+            continue;
         }
-    };
 
-    // 2. Resolving
-    let result = evaluate(&mut tokens);
+        if expression == "exit" || expression == "quit" || expression=="'quit'/'exit'" {
+            break;
+        }
 
-    // result
-    match result {
-        Ok(value) => println!("Final Result: {:.2}", value),
-        Err(err) => println!("Error: {}", err),
+        println!("Expression: {}", expression);
+
+        // 1. Lexing & Parsing
+        let mut tokens = match lexing(expression) {
+            Ok(t) => t,
+            Err(err) => {
+                println!("Lexing error: {}", err);
+                return;
+            }
+        };
+
+        // 2. Resolving
+        let result = evaluate(&mut tokens);
+  
+        // result
+        match result {
+            Ok(value) => println!("Final Result: {:.2}", value),
+            Err(err) => println!("Error: {}", err),
+        }
     }
 }
